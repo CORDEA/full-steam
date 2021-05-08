@@ -8,6 +8,7 @@ import Http exposing (Error)
 import Json.Decode as Decode exposing (Decoder, at, field)
 import String
 import Url
+import Url.Parser as Parser exposing ((</>), Parser)
 
 
 
@@ -39,7 +40,7 @@ type alias Model =
 
 type Page
     = Home
-    | Detail
+    | Detail { id : Int }
 
 
 type HomeData
@@ -58,7 +59,7 @@ type alias App =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( Model key Home Loading, fetchApps )
+    ( Model key (detectPage url) Loading, fetchApps )
 
 
 fetchApps : Cmd Msg
@@ -91,7 +92,7 @@ update msg model =
                     ( model, Nav.load href )
 
         UrlChanged url ->
-            ( model, Cmd.none )
+            ( { model | page = detectPage url }, Cmd.none )
 
         AppsFetched result ->
             case result of
@@ -100,6 +101,21 @@ update msg model =
 
                 Err _ ->
                     ( { model | homeData = Failure }, Cmd.none )
+
+
+detectPage : Url.Url -> Page
+detectPage url =
+    case Parser.parse urlParser url of
+        Just id ->
+            Detail { id = id }
+
+        Nothing ->
+            Home
+
+
+urlParser : Parser (Int -> a) a
+urlParser =
+    Parser.s "apps" </> Parser.int
 
 
 
@@ -123,7 +139,7 @@ view model =
             Home ->
                 home model.homeData
 
-            Detail ->
+            Detail id ->
                 div [] []
         ]
     }
