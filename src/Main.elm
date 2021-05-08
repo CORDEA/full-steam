@@ -3,6 +3,8 @@ module Main exposing (main)
 import Browser
 import Browser.Navigation as Nav
 import Html exposing (text)
+import Http exposing (Error)
+import Json.Decode as Decode exposing (Decoder, at, field, map2)
 import Url
 
 
@@ -29,12 +31,35 @@ main =
 type alias Model =
     { key : Nav.Key
     , url : Url.Url
+    , data : AppModel
     }
+
+
+type AppModel
+    = Failure
+    | Loading
+    | Success Apps
+
+
+type alias Apps =
+    List App
+
+
+type alias App =
+    { id : Int, name : String }
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( Model key url, Cmd.none )
+    ( Model key url Loading, fetchApps )
+
+
+fetchApps : Cmd Msg
+fetchApps =
+    Http.get
+        { url = ""
+        , expect = Http.expectJson AppsFetched appsDecoder
+        }
 
 
 
@@ -44,6 +69,7 @@ init _ url key =
 type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
+    | AppsFetched (Result Http.Error Apps)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -59,6 +85,14 @@ update msg model =
 
         UrlChanged url ->
             ( { model | url = url }, Cmd.none )
+
+        AppsFetched result ->
+            case result of
+                Ok value ->
+                    ( { model | data = Success value }, Cmd.none )
+
+                Err _ ->
+                    ( { model | data = Failure }, Cmd.none )
 
 
 
@@ -79,3 +113,18 @@ view model =
     { title = ""
     , body = [ text (Url.toString model.url) ]
     }
+
+
+
+-- DECODER
+
+
+appsDecoder : Decoder Apps
+appsDecoder =
+    at [ "applist", "apps" ]
+        (Decode.list
+            (map2 App
+                (field "appid" Decode.int)
+                (field "name" Decode.string)
+            )
+        )
