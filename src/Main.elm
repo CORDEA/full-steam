@@ -2,9 +2,11 @@ module Main exposing (main)
 
 import Browser
 import Browser.Navigation as Nav
-import Html exposing (text)
+import Html exposing (Html, a, div, li, text, ul)
+import Html.Attributes exposing (href)
 import Http exposing (Error)
-import Json.Decode as Decode exposing (Decoder, at, field, map2)
+import Json.Decode as Decode exposing (Decoder, at, field)
+import String
 import Url
 
 
@@ -111,8 +113,25 @@ subscriptions _ =
 view : Model -> Browser.Document Msg
 view model =
     { title = ""
-    , body = [ text (Url.toString model.url) ]
+    , body =
+        [ div []
+            [ case model.data of
+                Success value ->
+                    ul [] (List.map item value)
+
+                Failure ->
+                    text "Failed to fetch apps"
+
+                Loading ->
+                    text "Loading..."
+            ]
+        ]
     }
+
+
+item : App -> Html msg
+item app =
+    li [] [ a [ href (String.append "/apps/" (String.fromInt app.id)) ] [ text app.name ] ]
 
 
 
@@ -123,7 +142,7 @@ appsDecoder : Decoder Apps
 appsDecoder =
     at [ "applist", "apps" ]
         (Decode.list
-            (map2 App
+            (Decode.map2 App
                 (field "appid" Decode.int)
                 (field "name" Decode.string)
             )
