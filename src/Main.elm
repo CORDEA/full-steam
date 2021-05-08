@@ -32,12 +32,17 @@ main =
 
 type alias Model =
     { key : Nav.Key
-    , url : Url.Url
-    , data : AppModel
+    , page : Page
+    , homeData : HomeData
     }
 
 
-type AppModel
+type Page
+    = Home
+    | Detail
+
+
+type HomeData
     = Failure
     | Loading
     | Success Apps
@@ -53,7 +58,7 @@ type alias App =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( Model key url Loading, fetchApps )
+    ( Model key Home Loading, fetchApps )
 
 
 fetchApps : Cmd Msg
@@ -86,15 +91,15 @@ update msg model =
                     ( model, Nav.load href )
 
         UrlChanged url ->
-            ( { model | url = url }, Cmd.none )
+            ( model, Cmd.none )
 
         AppsFetched result ->
             case result of
                 Ok value ->
-                    ( { model | data = Success value }, Cmd.none )
+                    ( { model | homeData = Success value }, Cmd.none )
 
                 Err _ ->
-                    ( { model | data = Failure }, Cmd.none )
+                    ( { model | homeData = Failure }, Cmd.none )
 
 
 
@@ -114,19 +119,29 @@ view : Model -> Browser.Document Msg
 view model =
     { title = ""
     , body =
-        [ div []
-            [ case model.data of
-                Success value ->
-                    ul [] (List.map item value)
+        [ case model.page of
+            Home ->
+                home model.homeData
 
-                Failure ->
-                    text "Failed to fetch apps"
-
-                Loading ->
-                    text "Loading..."
-            ]
+            Detail ->
+                div [] []
         ]
     }
+
+
+home : HomeData -> Html msg
+home data =
+    div []
+        [ case data of
+            Success value ->
+                ul [] (List.map item value)
+
+            Failure ->
+                text "Failed to fetch apps"
+
+            Loading ->
+                text "Loading..."
+        ]
 
 
 item : App -> Html msg
