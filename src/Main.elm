@@ -104,7 +104,18 @@ update msg model =
                     ( model, Nav.load href )
 
         UrlChanged url ->
-            ( { model | page = detectPage url }, Cmd.none )
+            let
+                page =
+                    detectPage url
+            in
+            ( { model | page = page }
+            , case page of
+                Home ->
+                    fetchApps
+
+                Detail id ->
+                    fetchAppNews id.id
+            )
 
         AppsFetched result ->
             case result of
