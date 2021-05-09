@@ -34,7 +34,8 @@ main =
 type alias Model =
     { key : Nav.Key
     , page : Page
-    , homeData : HomeData
+    , homeData : Data Apps
+    , newsData : Data AppNews
     }
 
 
@@ -43,10 +44,10 @@ type Page
     | Detail { id : Int }
 
 
-type HomeData
+type Data data
     = Failure
     | Loading
-    | Success Apps
+    | Success data
 
 
 type alias Apps =
@@ -71,7 +72,7 @@ init _ url key =
         page =
             detectPage url
     in
-    ( Model key page Loading
+    ( Model key page Loading Loading
     , case page of
         Home ->
             fetchApps
@@ -128,10 +129,10 @@ update msg model =
         AppNewsFetched result ->
             case result of
                 Ok value ->
-                    ( model, Cmd.none )
+                    ( { model | newsData = Success value }, Cmd.none )
 
                 Err _ ->
-                    ( model, Cmd.none )
+                    ( { model | newsData = Failure }, Cmd.none )
 
 
 detectPage : Url.Url -> Page
@@ -187,17 +188,17 @@ view model =
                 home model.homeData
 
             Detail id ->
-                div [] []
+                news model.newsData
         ]
     }
 
 
-home : HomeData -> Html msg
+home : Data Apps -> Html Msg
 home data =
     div []
         [ case data of
             Success value ->
-                ul [] (List.map item value)
+                ul [] (List.map homeItem value)
 
             Failure ->
                 text "Failed to fetch apps"
@@ -207,9 +208,29 @@ home data =
         ]
 
 
-item : App -> Html msg
-item app =
+homeItem : App -> Html Msg
+homeItem app =
     li [] [ a [ href (String.append "/apps/" (String.fromInt app.id)) ] [ text app.name ] ]
+
+
+news : Data AppNews -> Html Msg
+news data =
+    div []
+        [ case data of
+            Success value ->
+                ul [] (List.map newsItem value)
+
+            Failure ->
+                text "Failed to fetch app news"
+
+            Loading ->
+                text "Loading..."
+        ]
+
+
+newsItem : AppNewsItem -> Html Msg
+newsItem item =
+    li [] [ a [ href item.url ] [ text item.title ] ]
 
 
 
