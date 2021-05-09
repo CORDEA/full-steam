@@ -57,17 +57,28 @@ type alias App =
     { id : Int, name : String }
 
 
+type alias AppNews =
+    List AppNewsItem
+
+
+type alias AppNewsItem =
+    { title : String, url : String, contents : String }
+
+
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( Model key (detectPage url) Loading, fetchApps )
+    let
+        page =
+            detectPage url
+    in
+    ( Model key page Loading
+    , case page of
+        Home ->
+            fetchApps
 
-
-fetchApps : Cmd Msg
-fetchApps =
-    Http.get
-        { url = ""
-        , expect = Http.expectJson AppsFetched appsDecoder
-        }
+        Detail id ->
+            fetchAppNews id.id
+    )
 
 
 
@@ -78,6 +89,7 @@ type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
     | AppsFetched (Result Http.Error Apps)
+    | AppNewsFetched (Result Http.Error AppNews)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -102,6 +114,14 @@ update msg model =
                 Err _ ->
                     ( { model | homeData = Failure }, Cmd.none )
 
+        AppNewsFetched result ->
+            case result of
+                Ok value ->
+                    ( model, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
 
 detectPage : Url.Url -> Page
 detectPage url =
@@ -116,6 +136,22 @@ detectPage url =
 urlParser : Parser (Int -> a) a
 urlParser =
     Parser.s "apps" </> Parser.int
+
+
+fetchApps : Cmd Msg
+fetchApps =
+    Http.get
+        { url = ""
+        , expect = Http.expectJson AppsFetched appsDecoder
+        }
+
+
+fetchAppNews : Int -> Cmd Msg
+fetchAppNews id =
+    Http.get
+        { url = ""
+        , expect = Http.expectJson AppNewsFetched appNewsDecoder
+        }
 
 
 
@@ -176,5 +212,17 @@ appsDecoder =
             (Decode.map2 App
                 (field "appid" Decode.int)
                 (field "name" Decode.string)
+            )
+        )
+
+
+appNewsDecoder : Decoder AppNews
+appNewsDecoder =
+    at [ "appnews", "newsitems" ]
+        (Decode.list
+            (Decode.map3 AppNewsItem
+                (field "title" Decode.string)
+                (field "url" Decode.string)
+                (field "contents" Decode.string)
             )
         )
