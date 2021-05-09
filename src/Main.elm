@@ -181,7 +181,7 @@ subscriptions _ =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = ""
+    { title = "Full steam"
     , body =
         [ case model.page of
             Home ->
