@@ -41,7 +41,7 @@ type alias Model =
 
 type Page
     = Home
-    | Detail { id : Int }
+    | News { id : Int }
 
 
 type Data data
@@ -77,7 +77,7 @@ init _ url key =
         Home ->
             fetchApps
 
-        Detail id ->
+        News id ->
             fetchAppNews id.id
     )
 
@@ -114,7 +114,7 @@ update msg model =
                 Home ->
                     fetchApps
 
-                Detail id ->
+                News id ->
                     fetchAppNews id.id
             )
 
@@ -139,7 +139,7 @@ detectPage : Url.Url -> Page
 detectPage url =
     case Parser.parse urlParser url of
         Just id ->
-            Detail { id = id }
+            News { id = id }
 
         Nothing ->
             Home
@@ -187,7 +187,7 @@ view model =
             Home ->
                 home model.homeData
 
-            Detail id ->
+            News id ->
                 news model.newsData
         ]
     }
